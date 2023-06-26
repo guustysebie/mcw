@@ -78,3 +78,13 @@ impl McwCommand for GetLatestCommits{
         }
     }
 }
+
+
+pub struct  VersionCommand;
+
+impl McwCommand for VersionCommand {
+    fn execute(&self, context: &McwContext) {
+        const VERSION: &str = env!("CARGO_PKG_VERSION");
+        println!("MyProgram v{}", VERSION);
+    }
+}
