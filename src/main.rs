@@ -44,7 +44,7 @@ fn generate_cli() -> Command {
         .subcommand(
             Command::new(COMMAND_EXEC)
                 .about("Executes the desired command")
-                .arg(arg!(<COMMAND> "The command to be executed"))
+                .arg(arg!(<COMMAND> "The command to be executed").num_args(1..))
                 .arg_required_else_help(true),
         )
         .subcommand(Command::new(COMMAND_GITLOG)
@@ -71,7 +71,13 @@ fn main() {
 
     match sub_command_matchers.subcommand() {
         Some((COMMAND_EXEC, sub_matches)) => {
-            let command = sub_matches.get_one::<String>("COMMAND").unwrap().to_string();
+            let command:Vec<String> = sub_matches.get_many::<String>("COMMAND")
+                .map(|vals| vals.collect::<Vec<_>>())
+                .unwrap_or_default()
+                .iter()
+                .map(|r| r.to_string())
+                .collect();
+
             context.mcw_command = Some(Box::new(McwExecuteCommand { command }))
         }
         Some((COMMAND_GITLOG, _)) => {

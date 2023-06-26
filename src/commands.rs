@@ -1,65 +1,36 @@
-use std::io::Write;
+use std::io::{Stdin, Write};
+use std::process::Stdio;
 use colored::Colorize;
 use crate::core::{McwCommand, McwContext};
 
-
-
-
-
-
-fn pre_process_command_windows(command: &str) -> String {
-    let mut cmd: Vec<&str> = command.trim().split(" ").collect();
-    let command_name = cmd.first().unwrap().to_owned();
-    ;
-    match command_name {
-        "git" => {
-            cmd.insert(1, "-c color.status=always")
-        }
-        "ls" => {
-            cmd.insert(1, "--color=always")
-        }
-        _ => {}
-    }
-    return cmd.join(" ");
-}
-
-fn execute_process_and_get_result(source_dir: &str, command: &str) -> String {
-    let output = if cfg!(target_os = "windows") {
-        let windows_cmd = "cd ".to_owned() + source_dir + "" + "&& " + pre_process_command_windows(command).as_str();
-        std::process::Command::new("cmd")
-            .args(["/C", &windows_cmd])
-            .output()
-            .expect("failed to execute process")
+fn execute_process_in_current_shell(source_dir: &str, command: &Vec<String>) {
+    if cfg!(target_os = "windows") {
+        let mut command_windows = vec!["/C".to_owned(), "cd".to_owned(), source_dir.to_owned(), "&&".to_owned()];
+        command.iter().for_each(|c| command_windows.push(c.to_string()));
+        let mut child = std::process::Command::new("cmd")
+            .stdin(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .args(command_windows)
+            .spawn()
+            .expect("failed to execute process");
+        child.wait().expect("TODO: panic message");
     } else {
         todo!();
-        // let linux_cmd = "cd ".to_owned() + repository + "&& " + &self.command;
-        // std::process::Command::new("sh")
-        //     .arg("-c")
-        //     .env("LS_COLORS", "rs=0:di=38;5;27:mh=44;38;5;15")
-        //     .arg(&linux_cmd)
-        //     .output()
-        //     .expect("failed to execute process")
     };
-  //  println!("{:#?}", output);
-    let hello = output.stdout;
-    let bing = output.stderr;
-    if bing.len() >0 {
-        println!("{}",std::str::from_utf8(&bing).unwrap().to_string().red());
-    }
-    return std::str::from_utf8(&hello).unwrap().to_string();
 }
-
 
 
 pub struct McwExecuteCommand {
-    pub command: String,
+    pub command: Vec<String>,
 }
+
 impl McwCommand for McwExecuteCommand {
     fn execute(&self, context: &McwContext) {
         for repository in context.repositories.borrow().iter() {
             let title = format!("[{:_^width$}]", repository, width = 78);
             println!("{}", title.purple());
-            print!("{}", execute_process_and_get_result(repository, &self.command));
+            execute_process_in_current_shell(repository, &self.command);
             std::io::stdout().flush().expect("TODO: panic message");
         }
     }
@@ -68,19 +39,26 @@ impl McwCommand for McwExecuteCommand {
 
 pub struct GetLatestCommits;
 
-impl McwCommand for GetLatestCommits{
+impl McwCommand for GetLatestCommits {
     fn execute(&self, context: &McwContext) {
         for repository in context.repositories.borrow().iter() {
             println!("{}", repository.purple());
-            let command = "git rev-list --max-count=5 --no-commit-header --format='%h__REPLACE_ME__%s' HEAD";
-            print!("{}", execute_process_and_get_result(repository, command).replace("__REPLACE_ME__","    ").replace("'",""));
+            let command = vec![
+                "git".to_owned(),
+                "rev-list".to_owned(),
+                "--max-count=5".to_owned(),
+                "--no-commit-header".to_owned(),
+                "--format=%h %s".to_owned(),
+                "HEAD".to_owned(),
+            ];
+            execute_process_in_current_shell(repository, &command);
             std::io::stdout().flush().expect("TODO: panic message");
         }
     }
 }
 
 
-pub struct  VersionCommand;
+pub struct VersionCommand;
 
 impl McwCommand for VersionCommand {
     fn execute(&self, context: &McwContext) {
