@@ -2,7 +2,9 @@ use std::cell::RefCell;
 
 use clap::Command;
 
-use crate::commands::{GetLatestCommits, McwExecuteCommand, VersionCommand};
+use crate::commands::exec_command::McwExecuteCommand;
+use crate::commands::gitlog_command::GetLatestCommits;
+use crate::commands::version_command::VersionCommand;
 use crate::core::{McwContext, McwSubCommand};
 use crate::repo_selector::select_repo_menu;
 
