@@ -1,98 +1,57 @@
+use std::cell::RefCell;
+
+use clap::Command;
+
+use crate::commands::{GetLatestCommits, McwExecuteCommand, VersionCommand};
+use crate::core::{McwContext, McwSubCommand};
+use crate::repo_selector::select_repo_menu;
+
 mod commands;
 mod core;
 mod repo_selector;
 
-use std::cell::RefCell;
-use std::io::Write;
-use clap::{arg, Arg, ArgAction, Command, command};
-use colored::Colorize;
-use walkdir::{DirEntry, WalkDir};
-use crate::commands::{GetLatestCommits, McwExecuteCommand, VersionCommand};
-use crate::core::{McwCommand, McwContext};
-use crate::repo_selector::select_repo_menu;
+fn main() {
+    let context = McwContext {
+        base_path: "./".to_string(),
+        repositories: RefCell::new(Vec::new()),
+        verbose: true,
+    };
+    let mut sub_commands: Vec<Box<dyn McwSubCommand>> = vec![
+        Box::new(McwExecuteCommand { command: vec![] }),
+        Box::new(GetLatestCommits {}),
+        Box::new(VersionCommand {}),
+    ];
 
-const COMMAND_EXEC: &str = "exec";
-const COMMAND_GITLOG: &str = "gitlog";
-const COMMAND_VERSION: &str = "version";
 
-
-fn generate_cli() -> Command {
-    Command::new("mcw")
+    let cmd = Command::new("mcw")
         .about("Multi command wizard\nAuthor: Guust Y. Stella A.")
         .subcommand_required(false)
         .arg_required_else_help(true)
         .allow_external_subcommands(true)
-        .arg(
-            Arg::new("version")
-                .action(ArgAction::SetTrue)
-                .short('v')
-                .long("version")
-                .help("Prints version and build info")
-        )
-        //TODO
-        //  .arg(
-        //      Arg::new("path")
-        //          .short('p')
-        //          .long("path")
-        //          .value_name("PATH")
-        //          .help("Base directory default: ./")
-        //  ).arg(
-        //  Arg::new("repos")
-        //      .short('r')
-        //      .long("repo")
-        //      .help("Specific repos <,> or < > seperated"))
-        .subcommand(
-            Command::new(COMMAND_EXEC)
-                .about("Executes the desired command")
-                .arg(arg!(<COMMAND> "The command to be executed").num_args(1..))
-                .arg_required_else_help(true),
-        )
-        .subcommand(Command::new(COMMAND_GITLOG)
-            .about("Shows the latest commits"))
-}
+        .subcommands(sub_commands.iter().map(|f| f.build_cli_opts()));
 
-fn main() {
-    let mut context = McwContext {
-        base_path: "./".to_string(),
-        repositories: RefCell::new(Vec::new()),
-        mcw_command: None,
-        verbose: true,
-    };
 
-    let cli = generate_cli();
-
-    let sub_command_matchers = cli.get_matches();
-
-    let is_version_command = sub_command_matchers.get_one::<bool>("version");
-    if is_version_command.is_some() && *is_version_command.unwrap() {
-        VersionCommand.execute(&context);
-        return;
-    }
+    let sub_command_matchers = cmd.clone().get_matches();
+    let mut command = None;
 
     match sub_command_matchers.subcommand() {
-        Some((COMMAND_EXEC, sub_matches)) => {
-            let command:Vec<String> = sub_matches.get_many::<String>("COMMAND")
-                .map(|vals| vals.collect::<Vec<_>>())
-                .unwrap_or_default()
-                .iter()
-                .map(|r| r.to_string())
-                .collect();
-
-            context.mcw_command = Some(Box::new(McwExecuteCommand { command }))
+        Some((command_exec, sub_matches)) => {
+            let cc = sub_commands
+                .iter_mut()
+                .find(|f| f.command_name() == command_exec);
+            if cc.is_some() {
+                let unwrapped = cc.unwrap();
+                unwrapped.fill_from_arguments(sub_matches);
+                command = Some(unwrapped);
+            };
         }
-        Some((COMMAND_GITLOG, _)) => {
-            context.mcw_command = Some(Box::new(GetLatestCommits))
-        }
-        _ => {
-            println!("Dude, come on");
-            unreachable!();
-        }
+        _ => {}
     }
 
 
-    match &context.mcw_command {
+    match command {
         None => {
-            println!("No command was successfully parsed");
+            println!("No subcommand was found");
         }
         Some(command) => {
             select_repo_menu(&context).expect("TODO: panic message");

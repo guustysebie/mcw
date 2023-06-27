@@ -1,7 +1,10 @@
-use std::io::{Stdin, Write};
+use std::io::Write;
 use std::process::Stdio;
+
+use clap::{arg, ArgMatches, Command};
 use colored::Colorize;
-use crate::core::{McwCommand, McwContext};
+
+use crate::core::{McwContext, McwSubCommand};
 
 fn execute_process_in_current_shell(source_dir: &str, command: &Vec<String>) {
     if cfg!(target_os = "windows") {
@@ -25,7 +28,7 @@ pub struct McwExecuteCommand {
     pub command: Vec<String>,
 }
 
-impl McwCommand for McwExecuteCommand {
+impl McwSubCommand for McwExecuteCommand {
     fn execute(&self, context: &McwContext) {
         for repository in context.repositories.borrow().iter() {
             let title = format!("[{:_^width$}]", repository, width = 78);
@@ -34,12 +37,33 @@ impl McwCommand for McwExecuteCommand {
             std::io::stdout().flush().expect("TODO: panic message");
         }
     }
+
+    fn build_cli_opts(&self) -> Command {
+        Command::new("exec")
+            .about("Executes the desired command")
+            .arg(arg!(<COMMAND> "The command to be executed").num_args(1..))
+            .arg_required_else_help(true)
+    }
+
+    fn command_name(&self) -> String {
+        return "exec".to_string();
+    }
+
+    fn fill_from_arguments(&mut self, matches: &ArgMatches) {
+        let command: Vec<String> = matches.get_many::<String>("COMMAND")
+            .map(|vals| vals.collect::<Vec<_>>())
+            .unwrap_or_default()
+            .iter()
+            .map(|r| r.to_string())
+            .collect();
+        self.command = command;
+    }
 }
 
 
 pub struct GetLatestCommits;
 
-impl McwCommand for GetLatestCommits {
+impl McwSubCommand for GetLatestCommits {
     fn execute(&self, context: &McwContext) {
         for repository in context.repositories.borrow().iter() {
             println!("{}", repository.purple());
@@ -55,14 +79,40 @@ impl McwCommand for GetLatestCommits {
             std::io::stdout().flush().expect("TODO: panic message");
         }
     }
+
+    fn build_cli_opts(&self) -> Command {
+        Command::new("gitlog")
+            .about("Shows the latest commits")
+    }
+
+    fn command_name(&self) -> String {
+        "gitlog".to_string()
+    }
+
+    fn fill_from_arguments(&mut self, _matches: &ArgMatches) {
+        unreachable!()
+    }
 }
 
 
 pub struct VersionCommand;
 
-impl McwCommand for VersionCommand {
-    fn execute(&self, context: &McwContext) {
+impl McwSubCommand for VersionCommand {
+    fn execute(&self, _context: &McwContext) {
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         println!("MyProgram v{}", VERSION);
+    }
+
+    fn build_cli_opts(&self) -> Command {
+        Command::new("version")
+            .about("Shows the version of the program")
+    }
+
+    fn command_name(&self) -> String {
+        "version".to_string()
+    }
+
+    fn fill_from_arguments(&mut self, _matches: &ArgMatches) {
+        unreachable!()
     }
 }

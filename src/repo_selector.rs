@@ -1,26 +1,21 @@
-use std::cell::RefCell;
 use std::error::Error;
 use std::io;
-use std::process::id;
-use std::rc::Rc;
-use std::time::{Duration, Instant};
 
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use crossterm::event::{KeyEventKind, KeyEventState};
-
-use tui::backend::{Backend, CrosstermBackend};
-use tui::layout::{Constraint, Corner, Direction, Layout};
-use tui::style::{Color, Modifier, Style};
+use crossterm::event::KeyEventKind;
 use tui::{Frame, Terminal};
-use tui::text::{Span, Spans};
+use tui::backend::{Backend, CrosstermBackend};
+use tui::layout::{Constraint, Direction, Layout};
+use tui::style::{Color, Modifier, Style};
+use tui::text::Spans;
 use tui::widgets::{Block, Borders, List, ListItem, ListState};
 use walkdir::WalkDir;
-use crate::core::McwContext;
 
+use crate::core::McwContext;
 
 struct StatefulList {
     state: ListState,
@@ -88,21 +83,17 @@ impl StatefulList {
         self.state.select(Some(i));
     }
 
-    fn unselect(&mut self) {
-        self.state.select(None);
-    }
 
     fn toggle_current_item(&mut self) {
         match self.state.selected() {
             None => {}
             Some(idx) => {
-                let mut bing = self.items.get_mut(idx).unwrap();
+                let bing = self.items.get_mut(idx).unwrap();
                 let current = bing.selected.clone().take();
                 if !current.unwrap() {
                     bing.selected.replace(true);
                 } else {
                     bing.selected.replace(false);
-                    //     *bing.selected.borrow_mut() = false;
                 }
             }
         }
@@ -168,7 +159,7 @@ pub fn select_repo_menu(context: &McwContext) -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let app = App::new(git_folders);
-    let res = run_app(&mut terminal, app, context);
+    let _res = run_app(&mut terminal, app, context);
 
     // restore terminal
     disable_raw_mode()?;
@@ -226,7 +217,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .items
         .iter()
         .map(|i| {
-            let mut span = Spans::from(i.generate_display());
+            let span = Spans::from(i.generate_display());
             ListItem::new(span).style(Style::default().fg(Color::White).bg(Color::Black))
         })
         .collect();
