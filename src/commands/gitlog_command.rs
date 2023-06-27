@@ -33,6 +33,6 @@ impl McwSubCommand for GetLatestCommits {
     }
 
     fn fill_from_arguments(&mut self, _matches: &ArgMatches) {
-        unreachable!()
+
     }
 }

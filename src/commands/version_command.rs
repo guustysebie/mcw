@@ -21,6 +21,5 @@ impl McwSubCommand for VersionCommand {
     }
 
     fn fill_from_arguments(&mut self, _matches: &ArgMatches) {
-        unreachable!()
     }
 }
