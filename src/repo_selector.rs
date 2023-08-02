@@ -15,6 +15,7 @@ use tui::text::Spans;
 use tui::widgets::{Block, Borders, List, ListItem, ListState};
 use walkdir::WalkDir;
 
+use crate::commands::execute_process_and_get_response;
 use crate::core::McwContext;
 
 struct StatefulList {
@@ -25,25 +26,31 @@ struct StatefulList {
 struct RepoSelectItem {
     repo_path: String,
     selected: Option<bool>,
+    git_status: String,
 }
 
 impl RepoSelectItem {
     fn new(repo_path: &str) -> Self {
+        let cmd = vec![
+            "git".to_string(),
+            "symbolic-ref".to_string(),
+            "--short".to_string(),
+            "HEAD".to_string(),
+        ];
+        let git_state = execute_process_and_get_response(repo_path, &cmd);
         return RepoSelectItem {
             repo_path: repo_path.to_owned(),
             selected: Some(false),
+            git_status: git_state,
         };
     }
 
     fn generate_display(&self) -> String {
-        let mut display = "[".to_owned();
+        let mut selected_token = ' ';
         if self.selected.unwrap() {
-            display += "X] ";
-        } else {
-            display += " ] ";
+            selected_token = 'X';
         }
-        display += self.repo_path.as_str();
-        return display;
+        return format!("[{}] ({:15}) {}", selected_token, self.git_status.as_str(), self.repo_path.as_str());
     }
 }
 
