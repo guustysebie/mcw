@@ -50,7 +50,7 @@ impl RepoSelectItem {
         if self.selected.unwrap() {
             selected_token = 'X';
         }
-        return format!("[{}] ({:15}) {}", selected_token, self.git_status.as_str(), self.repo_path.as_str());
+        return format!("[{}] ({:25}) {}", selected_token, self.git_status.as_str(), self.repo_path.as_str());
     }
 }
 
@@ -132,7 +132,7 @@ fn get_sub_git_folders(context: &McwContext) -> Vec<String> {
     let mut folders_contain_git_folders: Vec<String> = Vec::new();
     WalkDir::new(&context.base_path)
         .min_depth(1)
-        .max_depth(2)
+        .max_depth(context.depth + 1)
         .into_iter()
         .filter_entry(|e|
             {

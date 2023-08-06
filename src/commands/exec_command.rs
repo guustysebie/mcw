@@ -21,6 +21,7 @@ impl McwSubCommand for McwExecuteCommand {
     fn build_cli_opts(&self) -> Command {
         Command::new("exec")
             .about("Executes the desired command")
+            .allow_external_subcommands(true)
             .arg(arg!(<COMMAND> "The command to be executed").num_args(1..))
             .arg_required_else_help(true)
     }
