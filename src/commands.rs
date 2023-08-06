@@ -16,8 +16,17 @@ pub fn execute_process_in_current_shell(source_dir: &str, command: &Vec<String>)
             .spawn()
             .expect("failed to execute process");
         child.wait().expect("TODO: panic message");
-    } else {
-        todo!();
+    } else if cfg!(target_os = "linux") {
+        let command_linux = "cd ".to_string() + source_dir + " && " + command.join(" ").as_str();
+        let mut child = std::process::Command::new("sh")
+            .arg("-c")
+            .stdin(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .arg(command_linux)
+            .spawn()
+            .expect("failed to execute process");
+        child.wait().expect("TODO: panic message");
     };
 }
 
@@ -33,8 +42,22 @@ pub fn execute_process_and_get_response(source_dir: &str, command: &Vec<String>)
             .output()
             .expect("failed to execute process");
         return String::from_utf8_lossy(&child.stdout).to_string();
+    } else if cfg!(target_os = "linux") {
+        let mut command_linux = vec![ "cd".to_owned(), source_dir.to_owned(), "&&".to_owned()];
+        command.iter().for_each(|c| command_linux.push(c.to_string()));
+        let command_linux = "cd ".to_string() + source_dir + " && " + command.join(" ").as_str();
+        let child = std::process::Command::new("sh")
+            .arg("-c")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg(  command_linux   )
+            .output()
+            .expect("failed to execute process");
+        return String::from_utf8_lossy(&child.stdout).to_string();
+
     } else {
-        todo!();
+        todo!("Not implemented for this OS");
     };
 }
 
