@@ -8,7 +8,7 @@ pub struct VersionCommand;
 impl McwSubCommand for VersionCommand {
     fn execute(&self, _context: &McwContext) {
         const VERSION: &str = env!("CARGO_PKG_VERSION");
-        println!("MyProgram v{}", VERSION);
+        println!("mcw v{}", VERSION);
     }
 
     fn build_cli_opts(&self) -> Command {

@@ -6,6 +6,7 @@ pub struct McwContext {
     pub base_path: String,
     pub repositories: RefCell<Vec<String>>,
     pub verbose: bool,
+    pub depth: usize
 }
 
 
