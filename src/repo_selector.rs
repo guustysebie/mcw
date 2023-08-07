@@ -90,6 +90,18 @@ impl StatefulList {
         self.state.select(Some(i));
     }
 
+    fn toggle_all(&mut self) {
+        let mut all_selected = true;
+        for x in self.items.iter() {
+            if !x.selected.unwrap() {
+                all_selected = false;
+                break;
+            }
+        }
+        for x in self.items.iter_mut() {
+            x.selected.replace(!all_selected);
+        }
+    }
 
     fn toggle_current_item(&mut self) {
         match self.state.selected() {
@@ -110,7 +122,6 @@ impl StatefulList {
 
 struct App {
     items: StatefulList,
-    //events: Vec<(&'a str, &'a str)>,
 }
 
 impl<'a> App {
@@ -201,6 +212,7 @@ fn run_app<B: Backend>(
                             return Ok(());
                         }
                         KeyCode::Char(' ') => app.items.toggle_current_item(),
+                        KeyCode::Char('a') => app.items.toggle_all(),
                         KeyCode::Enter => app.items.toggle_current_item(),
                         KeyCode::Up => app.items.previous(),
                         _ => {}
@@ -230,7 +242,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .collect();
 
     let items = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Select repos you want to use (UP, DOWN, Toggle with space q to quit, c confirm) "))
+        .block(Block::default().borders(Borders::ALL).title("Select repos you want to use (UP, DOWN, Toggle with space, toggle all with a, q to quit, c confirm) "))
         .highlight_style(
             Style::default()
                 .bg(Color::LightGreen)
